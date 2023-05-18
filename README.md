@@ -1,2 +1,2 @@
 # scGSLoop
-A lightweight framework for loop calling on single-cell Hi-C
+Source code for "A lightweight framework for chromatin loop detection at the single-cell level"
