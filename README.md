@@ -27,6 +27,10 @@ pip install -r requirements.txt
 
 ---
 
+ScGSLoop accepts `.scool` files as input. If this format sounds unfamiliar to you, kindly check out [Cooler](https://github.com/open2c/cooler)'s [document](https://cooler.readthedocs.io/en/latest/quickstart.html) for detailed descriptions. 
+
+The user needs to prepare their data of two resolutions: 10 kb and 100 kb. If you only have the resolution of 10 kb, you can simply coarsen it using [cooler coarsen](https://cooler.readthedocs.io/en/latest/cli.html#cooler-coarsen).
+
 To use scGSLoop to predict loops, the user only needs to modify the fields in `configs.py`. The meanings of the fields in `configs.py` are listed below:
 
 ``` text
@@ -78,3 +82,5 @@ After configuring the program, run it by:
 ```
 python predict_eval.py
 ```
+
+The loop calls of each cell at the single-cell level will be available in the directory you designated as `OUT_DIR`.
