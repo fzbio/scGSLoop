@@ -27,7 +27,7 @@ pip install -r requirements.txt
 
 ---
 
-ScGSLoop accepts `.scool` files as input. If this format sounds unfamiliar to you, kindly check out [Cooler](https://github.com/open2c/cooler)'s [document](https://cooler.readthedocs.io/en/latest/quickstart.html) for detailed descriptions. 
+ScGSLoop accepts `.scool` files as input. If this format sounds unfamiliar to you, kindly check out [Cooler](https://github.com/open2c/cooler)'s [documentation](https://cooler.readthedocs.io/en/latest/api.html#cooler.create_scool) for detailed descriptions. 
 
 The user needs to prepare their data of two resolutions: 10 kb and 100 kb. If you only have the resolution of 10 kb, you can simply coarsen it using [cooler coarsen](https://cooler.readthedocs.io/en/latest/cli.html#cooler-coarsen).
 
