@@ -5,6 +5,7 @@ import pyfastx
 import os
 import sys
 import cooler
+from schickit.utils import get_chrom_sizes
 from sklearn.preprocessing import StandardScaler
 
 
@@ -52,15 +53,28 @@ def scan_kmer_in_each_locus(fa, full_headers: pd.DataFrame, res, k, relative_fre
     return result
 
 
-def create_kmer_input_file(scool_file_path, assembly_path, out_csv_path, chroms, resolution):
+def create_bin_df_from_chrom_sizes(chrom_sizes, chroms, res):
+    chrom_col = []
+    start_col = []
+    end_col = []
+    for c in chroms:
+        size = chrom_sizes[c]
+        locus_count = size // res + 1 if size % res != 0 else size // res
+        chrom_col += [c] * locus_count
+        start_col += [l * res for l in range(locus_count)]
+
+        current_chrom_end_col = [l * res + res for l in range(locus_count)]
+        current_chrom_end_col[-1] = size
+        end_col += current_chrom_end_col
+    gw_df = pd.DataFrame({'chrom': chrom_col, 'start': start_col, 'end': end_col})
+    return gw_df
+
+
+def create_kmer_input_file(chrom_size_path, assembly_path, out_csv_path, chroms, resolution):
     ks = [3, 4]
     fasta = pyfastx.Fasta(assembly_path)
-    cell_names = cooler.fileops.list_scool_cells(scool_file_path)
-    bins = cooler.Cooler(scool_file_path + "::" + cell_names[0]).bins()[:]
-    genomic_coords = []
-    for chrom in chroms:
-        genomic_coords.append(bins[bins['chrom'] == chrom])
-    genomic_coords = pd.concat(genomic_coords)
+    chrom_sizes = get_chrom_sizes(chrom_size_path)
+    genomic_coords = create_bin_df_from_chrom_sizes(chrom_sizes, chroms, resolution)
     kmer_dfs = []
     for k in ks:
         kmer_df = scan_kmer_in_each_locus(fasta, genomic_coords, resolution, k, False)
@@ -71,14 +85,10 @@ def create_kmer_input_file(scool_file_path, assembly_path, out_csv_path, chroms,
     result_df.to_csv(out_csv_path, sep='\t', header=True, index=False)
 
 
-def create_motif_input_file(scool_file_path, motif_bed_path, out_csv_path, chroms, resolution):
+def create_motif_input_file(chrom_size_path, motif_bed_path, out_csv_path, chroms, resolution):
     motif_bed_df = pd.read_csv(motif_bed_path, sep='\t', header=0, index_col=False)
-    cell_names = cooler.fileops.list_scool_cells(scool_file_path)
-    bins = cooler.Cooler(scool_file_path + "::" + cell_names[0]).bins()[:]
-    genomic_coords = []
-    for chrom in chroms:
-        genomic_coords.append(bins[bins['chrom'] == chrom])
-    bins = pd.concat(genomic_coords).reset_index(drop=True)
+    chrom_sizes = get_chrom_sizes(chrom_size_path)
+    bins = create_bin_df_from_chrom_sizes(chrom_sizes, chroms, resolution)
     motif_bed_df['start'] = motif_bed_df['start'] // resolution * resolution
     motif_bed_df = motif_bed_df[['seqnames', 'start', 'strand']]
     motif_bed_df['count'] = np.zeros(len(motif_bed_df), dtype='float')
@@ -94,17 +104,35 @@ def create_motif_input_file(scool_file_path, motif_bed_path, out_csv_path, chrom
     merged.to_csv(out_csv_path, sep='\t', header=True, index=False)
 
 
+
+
+
 if __name__ == '__main__':
+
     create_kmer_input_file(
-        'data/mES/nagano_10kb_filtered.scool',
-        'data/graph_features/mouse/mm10.fa',
-        'data/graph_features/mouse/mm10.10kb.more.kmer.csv',
+        'external_annotations/mm9.chrom.sizes',
+        'data/graph_features/mouse/mm9.fa',
+        'data/graph_features/mouse/mm9.10kb.kmer.csv',
         ['chr' + str(i) for i in range(1, 20)],
         10000
     )
     create_motif_input_file(
-        'data/mES/nagano_10kb_filtered.scool',
-        'data/graph_features/mouse/CTCF_mm10.bed',
-        'data/graph_features/mouse/CTCF_mm10.10kb.input.csv',
+        'external_annotations/mm9.chrom.sizes',
+        'data/graph_features/mouse/CTCF_mm9.bed',
+        'data/graph_features/mouse/CTCF_mm9.10kb.input.csv',
         ['chr' + str(i) for i in range(1, 20)], 10000
+    )
+
+    create_kmer_input_file(
+        'external_annotations/hg38.chrom.sizes',
+        'data/graph_features/human/hg38.fa',
+        'data/graph_features/human/hg38.10kb.kmer.csv',
+        ['chr' + str(i) for i in range(1, 23)],
+        10000
+    )
+    create_motif_input_file(
+        'external_annotations/hg38.chrom.sizes',
+        'data/graph_features/human/CTCF_hg38.bed',
+        'data/graph_features/human/CTCF_hg38.10kb.input.csv',
+        ['chr' + str(i) for i in range(1, 23)], 10000
     )
