@@ -14,9 +14,9 @@ MOTIF_FEATURE_PATH = f'data/graph_features/human/CTCF_hg19.10kb.input.csv'
 KMER_FEATURE_PATH = f'data/graph_features/human/hg19.10kb.kmer.csv'
 
 IMPUTE = True
-OUT_IMPUTED_SCOOL_100KB = f'refined_scools/demo_imputed_coarse.scool'  # Can be Empty
-OUT_IMPUTED_SCOOL_10KB = f'refined_scools/demo_imputed_finer.scool'    # Can be empty
-IMPUTATION_DATASET_DIR = 'data/human_prefrontal_cortex/demo_imputation_dataset_no_label'  # Can be Empty
+OUT_IMPUTED_SCOOL_100KB = f'refined_scools/demo_imputed_coarse.scool'
+OUT_IMPUTED_SCOOL_10KB = f'refined_scools/demo_imputed_finer.scool'
+IMPUTATION_DATASET_DIR = 'data/human_prefrontal_cortex/demo_imputation_dataset_no_label'
 
 GENOME_REGION_FILTER = 'region_filter/hg19_filter_regions.txt'  # Can be None
 
