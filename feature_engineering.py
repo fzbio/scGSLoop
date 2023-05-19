@@ -94,29 +94,17 @@ def create_motif_input_file(scool_file_path, motif_bed_path, out_csv_path, chrom
     merged.to_csv(out_csv_path, sep='\t', header=True, index=False)
 
 
-
-
-
 if __name__ == '__main__':
     create_kmer_input_file(
         'data/mES/nagano_10kb_filtered.scool',
         'data/graph_features/mouse/mm10.fa',
         'data/graph_features/mouse/mm10.10kb.more.kmer.csv',
         ['chr' + str(i) for i in range(1, 20)],
-        # ['chr22'],
         10000
     )
-    create_kmer_input_file(
-        'data/human_prefrontal_cortex/luo_10kb_filtered.scool',
-        'data/graph_features/human/hg19.fa',
-        'data/graph_features/human/hg19.10kb.more.kmer.csv',
-        ['chr' + str(i) for i in range(1, 23)],
-        # ['chr22'],
-        10000
+    create_motif_input_file(
+        'data/mES/nagano_10kb_filtered.scool',
+        'data/graph_features/mouse/CTCF_mm10.bed',
+        'data/graph_features/mouse/CTCF_mm10.10kb.input.csv',
+        ['chr' + str(i) for i in range(1, 20)], 10000
     )
-    # create_motif_input_file(
-    #     'data/mES/nagano_10kb_filtered.scool',
-    #     'data/graph_features/mouse/CTCF_mm10.bed',
-    #     'data/graph_features/mouse/CTCF_mm10.10kb.input.csv',
-    #     ['chr' + str(i) for i in range(1, 20)], 10000
-    # )

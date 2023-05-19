@@ -3,7 +3,6 @@ import scipy
 import numpy as np
 import pandas as pd
 import os
-from tables import *
 from .data_storage import save_to_pickle
 import multiprocessing as mp
 import time
