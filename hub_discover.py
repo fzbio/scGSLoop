@@ -157,20 +157,21 @@ class HubDiscoverer(object):
 
 
 if __name__ == '__main__':
-    discoverer = HubDiscoverer([3, 4, 5, 6], ['chr' + str(i) for i in range(1, 23)])
+    ######### Modify the variables below ######################
+    chroms = ['chr' + str(i) for i in range(1, 23)]
+    gene_coords_path = 'external_annotations/gene_coords.csv'
+    pred_dir = 'preds/mES_k3_run0_GNNFINE_transfer2869_replicate0_filtered'
+    assembly_size = 'external_annotations/hg19.sizes'
+    consensus_path = 'preds/aggr_preds_on_hpc/Astro.cell2869.rep0.csv'
+    output_path = 'preds/hub_preds/astro.promoter_hubs.40kb.json'
+    ############################################################
+
+    discoverer = HubDiscoverer([3, 4, 5, 6], chroms)
     discoverer.compile(
-        'external_annotations/gene_coords.csv', 'preds/mES_k3_run0_GNNFINE_transfer2869_replicate0_filtered',
-        lambda x: 'Astro' in x, 'external_annotations/hg19.sizes', 'preds/aggr_preds_on_hpc/Astro.cell2869.rep0.csv'
+        gene_coords_path, pred_dir,
+        lambda x: True, assembly_size, consensus_path
     )
     discoverer.find_hubs()
     discoverer.align_with_aggr_hubs()
-    discoverer.save_hubs_to_json('preds/hub_preds/astro.promoter_hubs.40kb.json.test')
+    discoverer.save_hubs_to_json(output_path)
 
-    # discoverer = HubDiscoverer([2, 3, 4, 5, 6], ['chr' + str(i) for i in range(1, 23)], loop_threshold=0)
-    # discoverer.compile(
-    #     'external_annotations/gene_coords.csv', 'tmp/astro_aggr_pred',
-    #     lambda x: 'Astro' in x, 'external_annotations/hg19.sizes', 'preds/aggr_preds_on_hpc/Astro.cell2869.rep0.csv'
-    # )
-    # discoverer.find_hubs()
-    # discoverer.align_with_aggr_hubs()
-    # discoverer.save_hubs_to_json('preds/hub_preds/astro.promoter_hubs.aggr.40kb.json')

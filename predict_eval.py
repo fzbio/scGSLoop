@@ -176,9 +176,10 @@ if __name__ == '__main__':
         graph_dataset_path = f'{graph_dir}/{run_id}_graph_transfer'
         name_parser = None
         desired_cell_types = None
-        bedpe_dict = {
-                'PLACEHOLDER': 'data/placeholder.bedpe'
-        }
+        placeholder_path = 'data/placeholder.bedpe'
+        if not os.path.exists(placeholder_path):
+            open(placeholder_path, 'w').close()
+        bedpe_dict = {'PLACEHOLDER': placeholder_path}
         if do_impute:
             raw_coarse_dataset = ScoolDataset(
                 imputation_dataset_path,
