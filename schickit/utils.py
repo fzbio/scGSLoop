@@ -24,7 +24,7 @@ def coarsen_scool(scool_path, out_scool_path):
             cell_uri = scool_path + '::' + cell_path
             # print(cell_uri)
             cell_name = cell_uri.split('/')[-1]
-            cooler.coarsen_cooler(cell_uri, os.path.join(temp_dir, cell_name) + '_100kb_contacts.cool', 10, 1000000, 12)
+            cooler.coarsen_cooler(cell_uri, os.path.join(temp_dir, cell_name) + '_100kb_contacts.cool', 10, 1000000)
         convert_cool_to_scool(temp_dir, out_scool_path, parse_human_prefrontal_cortex)
     print('Done!')
 
