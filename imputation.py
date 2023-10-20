@@ -1,32 +1,24 @@
 import os.path
-import time
 
 import cooler
 import numpy as np
-import pandas as pd
 import torch
 from torch_geometric.nn import VGAE, global_mean_pool
-from torch_geometric.loader import NeighborLoader, DataLoader
-from gnns import VariationalGraphSageEncoder, DenseDecoder
+from torch_geometric.loader import DataLoader
+from gnns import VariationalGraphSageEncoder
 from schickit.data_reading import read_cool_as_sparse
-from schickit.data_storage import save_sparse_to_scool, save_sparse_to_cool
+from schickit.data_storage import save_sparse_to_cool
 from schickit.file_format_conversion import convert_cool_to_scool
-from utils import hpc_celltype_parser
-import random
 from tqdm.auto import tqdm
-# from torch_geometric.transforms import RandomLinkSplit
-from train_utils import gnn_evaluate_all, gnn_train_batch, gnn_approx_evaluate_all, save_model, load_model, EarlyStopper
+from train_utils import gnn_train_batch, gnn_approx_evaluate_all, save_model, load_model, EarlyStopper
 from torch_geometric import transforms as T
 from scipy.spatial.distance import cdist
-from scipy.sparse import coo_matrix
-from collections import OrderedDict
-import multiprocessing as mp
 from nn_data import ScoolDataset
-from nn_data import get_split_dataset, easy_to_device
+from nn_data import easy_to_device
 import tempfile
 from nn_data import RemoveSelfLooping
 from schickit.utils import coarsen_scool
-from configs import DATA_SPLIT_SEED, DEVICE
+from configs import DEVICE
 
 # torch.manual_seed(SEED)
 # random.seed(SEED)
@@ -43,37 +35,6 @@ class Pooling(torch.nn.Module):
     def forward(self, z, batch):
         z = self.pooling(z, batch)
         return z
-
-
-# def average_adj(coo_group):
-#     # coo matrices in coo_list must be of the same shape. This is not checked in the function and
-#     # must be taken care by the user.
-#     shape = coo_group[0].shape
-#     data_dict = dict()
-#     count_dict = dict()
-#     for m in coo_group:
-#         coords = zip(m.row, m.col)
-#         data = m.data
-#         for c, d in zip(coords, data):
-#             if c in data_dict:
-#                 data_dict[c] += d
-#                 count_dict[c] += 1
-#             else:
-#                 data_dict[c] = d
-#                 count_dict[c] = 1
-#     for key in data_dict:
-#         data_dict[key] = data_dict[key] / count_dict[key]
-#     coord_data_pairs = data_dict.items()
-#     if len(coord_data_pairs) > 0:
-#         coords, data = zip(*coord_data_pairs)
-#         row, col = zip(*coords)
-#         data_df = pd.DataFrame({'row': row, 'col': col, 'data': data})
-#         data_df.sort_values(by=['row', 'col'], ascending=True)
-#         row, col, data = data_df['row'], data_df['col'], data_df['data']
-#         return coo_matrix((data, (row, col)), shape=shape)
-#     else:
-#         print(1)
-#         return coo_matrix(([], ([], [])), shape=shape)
 
 
 def average_adj(coo_group):
@@ -255,20 +216,4 @@ if __name__ == '__main__':
 
 
     K = 4
-
-
-
-    # train(data_loader, epochs, model, optimizer, kl_coef=kl_coef)
-    # dist_matrix = calculate_dist_matrix(
-    #     model, DataLoader(dataset, batch_size=len(chroms), num_workers=8, shuffle=False),
-    #     Pooling(global_mean_pool).to(DEVICE), out_channels
-    # )
-    # impute_dataset(
-    #     dataset, 'data/mES/nagano_10kb_raw.scool',
-    #     dist_matrix, K, 'data/mES/refined_data/nagano_10kb_raw_imputed{}.scool'.format(K), 10
-    # )
-# coarsen_scool(
-#             'data/mES/refined_data/nagano_10kb_raw_imputed{}.scool'.format(K),
-#             'data/mES/refined_data/nagano_100kb_raw_imputed{}.scool'.format(K)
-#         )
 

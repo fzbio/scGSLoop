@@ -1,61 +1,19 @@
-import gc
-import glob
-
 import numpy as np
 from torch_geometric.data import Dataset
 from os import path
 import cooler
-from schickit.data_reading import read_cool_as_sparse, read_labels_as_sparse, read_multiple_cell_labels
+from schickit.data_reading import read_cool_as_sparse, read_multiple_cell_labels
 import pandas as pd
 from torch_geometric.data import Data
 from tqdm.auto import tqdm
 from torch_geometric.utils import negative_sampling, remove_self_loops
 from torch_geometric.transforms import BaseTransform
 import torch
-from torch.utils.data import Dataset as PlainDataset
-from torch.utils.data import IterableDataset
 import copy
-import os
-from torchvision import transforms
 import random
 from positional_encodings.torch_encodings import PositionalEncoding1D, Summer
 from sklearn.preprocessing import MaxAbsScaler
 import joblib
-
-
-class TeacherStudentJointDataset(PlainDataset):
-    def __init__(self, teacher_ds, student_ds):
-        self.teacher_ds = teacher_ds
-        self.student_ds = student_ds
-
-    def __getitem__(self, index):
-        teacher_data = self.teacher_ds[index]
-        student_data = self.student_ds[index]
-        return teacher_data, student_data
-
-    def __len__(self):
-        return len(self.teacher_ds)
-
-
-class ImageData(object):
-    def __init__(self, image, label, cell_name, chrom_name, left_start, right_start):
-        self.image = image
-        self.label = label
-        self.cell_name = cell_name
-        self.chrom_name = chrom_name
-        self.left_start = left_start
-        self.right_start = right_start
-
-
-class PerImageNormalize(object):
-    def __init__(self):
-        pass
-
-    def __call__(self, sample):
-        mean = np.mean(sample)
-        std = np.std(sample)
-        adjusted_stddev = max(std, 1.0 / np.sqrt(len(sample.flatten())))
-        return (sample - mean) / adjusted_stddev
 
 
 class GaussianNoise(object):
@@ -67,67 +25,6 @@ class GaussianNoise(object):
         d2 = sample.shape[1]
         sample = sample + self.std * np.random.randn(d1, d2, 1)
         return sample
-
-
-def process_image_data(data, transform):
-    image = data.image
-    image = np.log(image + 1)
-    # image[image > 0] = 1
-    image[image > 5] = 5
-
-    image = np.asarray(image, dtype='float')
-    image = transform(image)
-    image = torch.from_numpy(image[np.newaxis, ...])
-    image = image.float()
-    label = torch.from_numpy(data.label[np.newaxis, ...])
-    label = label.float()
-    return image, label
-
-
-class ImageDatasetIterable(IterableDataset):
-    def __init__(self, image_generator):
-        self.generator = image_generator
-        self.transform = transforms.Compose([
-            PerImageNormalize(),
-        ])
-
-    def process(self):
-        for data in self.generator:
-            image, label = process_image_data(data, self.transform)
-            yield {
-                'image': image,
-                'label': label,
-                'cell_name': data.cell_name,
-                'chrom_name': data.chrom_name,
-                'left_start': data.left_start,
-                'right_start': data.right_start
-            }
-
-    def __iter__(self):
-        return self.process()
-
-
-class ImageDataset(PlainDataset):
-    def __init__(self, root_dir):
-        self.root_dir = root_dir
-        self.transform = transforms.Compose([
-            PerImageNormalize(),
-        ])
-
-    def __len__(self):
-        return len(glob.glob(os.path.join(self.root_dir, "*.pt")))
-
-    def __getitem__(self, idx):
-        data = torch.load(os.path.join(self.root_dir, f"{idx}.pt"))
-        image, label = process_image_data(data, self.transform)
-        return {
-            'image': image,
-            'label': label,
-            'cell_name': data.cell_name,
-            'chrom_name': data.chrom_name,
-            'left_start': data.left_start,
-            'right_start': data.right_start
-        }
 
 
 def easy_to_device(data, device, attrs_to_remove):

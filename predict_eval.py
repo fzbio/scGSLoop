@@ -9,15 +9,12 @@ import numpy as np
 import random
 from nn_data import StreamScoolDataset, expand_cell_ids_to_graph_ids, ScoolDataset, ReadKmerFeatures, ReadMotifFeatures, PositionalEncoding
 from torch_geometric import transforms as T
-from nn_data import RemoveSelfLooping, ImageDataset
-from torch.utils.data import DataLoader as PlainDataLoader
-from metrics import slack_metrics_df, slack_f1_df
+from nn_data import RemoveSelfLooping
+from metrics import slack_metrics_df
 import os
-from nn_data import get_split_dataset
-from utils import read_chrom_loopnum_json, remove_datasets
-from post_process import PostProcessor, remove_short_distance_loops
-import sys
-from configs import DEVICE, SEED, DATA_SPLIT_SEED
+from utils import remove_datasets
+from post_process import PostProcessor
+from configs import DEVICE
 from imputation import Imputer
 from sklearn.preprocessing import minmax_scale
 from matplotlib import pyplot as plt
@@ -31,19 +28,6 @@ from configs import IMPUTE as do_impute, MODEL_ID as run_id, K, CHROMOSOMES as c
     OUT_IMPUTED_SCOOL_10KB as imputed_finer_scool
 
 torch.multiprocessing.set_sharing_strategy('file_system')
-
-
-def get_valid_test_cell_names():
-    valid_names = []
-    data_loader = PlainDataLoader(ImageDataset('image_data/mES_raw_k4_dense_test'), batch_size=1, shuffle=False)
-    for data in data_loader:
-        valid_names.append(data['cell_name'][0])
-    return set(valid_names)
-
-
-def get_test_cell_names(graph_dataset, chroms, seed, runtime):
-    *_, test_set = get_split_dataset(graph_dataset, 10, runtime, chroms, 'loop', seed)
-    return test_set
 
 
 def predict_on_other_dataset(training_run_id, chroms, bedpe_dict, model_dir, fine_scool_path,

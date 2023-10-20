@@ -1,6 +1,5 @@
 import cooler
 import os
-import re
 from tqdm.auto import tqdm
 import pandas as pd
 import random

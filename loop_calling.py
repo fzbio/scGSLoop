@@ -7,41 +7,18 @@ import pandas as pd
 import torch
 from torch_geometric.nn import VGAE
 from torch_geometric.loader import DataLoader
-from torch.utils.data import DataLoader as PlainDataLoader
 from gnns import DenseDecoder, VariationalGraphSageEncoder
-from schickit.data_reading import read_labels_as_sparse
-from utils import hpc_celltype_parser
-import random
 from tqdm.auto import tqdm
-from train_utils import gnn_evaluate_all, gnn_train_batch, \
-    EarlyStopper, save_model, load_model, cnn_train_batch, cnn_approx_evaluate_all, polynomial_decay_func_factory
-from torch_geometric import transforms as T
-from scipy.sparse import coo_matrix
-from scipy import sparse as sp
-import multiprocessing as mp
-from nn_data import ScoolDataset
-import tempfile
-from nn_data import RemoveSelfLooping, easy_to_device, ImageDataset, ImageData, ImageDatasetIterable
-from nn_data import get_split_dataset, ShortDistanceNegSampler, short_dist_neg_sampling
-from schickit.utils import coarsen_scool
+from train_utils import EarlyStopper, save_model, load_model
+from nn_data import easy_to_device
+from nn_data import ShortDistanceNegSampler, short_dist_neg_sampling
 from torch.utils.tensorboard import SummaryWriter
-import json
 import joblib
 from post_process import remove_short_distance_loops
 from sklearn.linear_model import LinearRegression
-from metrics import slack_f1_evaluate_all
-from configs import DATA_SPLIT_SEED, DEVICE, LOADER_WORKER
-from torchvision.ops import sigmoid_focal_loss
-from utils import padding, split_image_into_patches, observe_to_oe
+from configs import DEVICE, LOADER_WORKER
 from torchmetrics.classification import BinaryAUROC, BinaryAveragePrecision
 from torch.utils.data import RandomSampler
-
-
-# torch.manual_seed(SEED)
-# np.random.seed(SEED)
-# random.seed(SEED)
-# torch.cuda.manual_seed(SEED)
-# torch.cuda.manual_seed_all(SEED)
 
 
 def estimate_chrom_loop_num_train(train_ds, run_name, model_dir, ratio=0.75, estimate_on=100):
@@ -62,13 +39,9 @@ def estimate_chrom_loop_num_train(train_ds, run_name, model_dir, ratio=0.75, est
         loop_nums.append(loop_num / len(graph_ids))
         chrom_sizes.append(chrom_size / len(graph_ids))
     X = np.array(chrom_sizes).reshape([-1, 1])
-    # X = X ** 2
     y = np.array(loop_nums)
     reg = LinearRegression()
     reg.fit(X, y)
-    # print(reg.coef_)
-    # print(reg.intercept_)
-    # print(reg.score(X, y))
     joblib.dump(reg, os.path.join(model_dir, f'{run_name}.pkl'))
     chrom_loopnum_dict = {}
     for i, chrom_name in enumerate(train_ds.chrom_names):
@@ -83,74 +56,6 @@ def estimate_chrom_loop_num_predict(test_ds, run_name, model_dir, ratio=0.75):
     for i, chrom_name in enumerate(test_ds.chrom_names):
         chrom_loopnum_dict[chrom_name] = int(ratio * reg.predict(np.array([[test_ds[i].num_nodes]]))[0])
     return chrom_loopnum_dict
-
-
-@torch.no_grad()
-def image_generator(trained_model, coarse_ds, finer_scool_path, has_label, chrom_num_dict, graph_indices, coarsened_time=10):
-    trained_model.eval()
-    label_dict = {}
-    if has_label:
-        for k in coarse_ds.celltype_bedpe_dict:
-            label_dict[k] = read_labels_as_sparse(
-                coarse_ds.celltype_bedpe_dict[k], coarse_ds.resolution // coarsened_time, coarse_ds.chrom_df
-            )
-    for i in tqdm(graph_indices):
-        d = coarse_ds[i]
-        loop_num = chrom_num_dict[d.chrom_name]
-        clr = cooler.Cooler(finer_scool_path + '::' + d.cell_name)
-        chrom_matrix = clr.matrix(balance=False, sparse=False).fetch(d.chrom_name)
-        # chrom_matrix = observe_to_oe(chrom_matrix)
-        # chrom_matrix = chrom_matrix - np.diag(np.diag(chrom_matrix))
-        attrs_to_remove = ['chrom_name', 'cell_name', 'cell_type', 'edge_weights', 'edge_label_index']
-        d = easy_to_device(d, DEVICE, attrs_to_remove)
-        z = trained_model.encode(d.x, d.edge_index)
-        proba = trained_model.decoder.forward_all(z)
-        proba = proba.detach().cpu().numpy()
-        threshold = np.partition(proba.flatten(), -loop_num)[-loop_num]
-        candidates = (proba > threshold).nonzero()
-        if len(candidates) == 2:
-            rows, cols = candidates[0], candidates[1]
-            cell_type = d.cell_type
-            if has_label:
-                labels_chroms = label_dict[cell_type]
-                chrom_id = coarse_ds.chrom_df[coarse_ds.chrom_df['name'] == d.chrom_name].index[0]
-                chrom_label = np.array(labels_chroms[chrom_id].todense())
-            for row, col in zip(rows, cols):
-                t = coarsened_time
-                if row * t - 27 >= 0 and col * t - 27 >= 0:
-                    mat = chrom_matrix[row * t - 27:row * t + 37, col * t - 27:col * t + 37]
-                    mat = padding(mat, 64)
-                    assert mat.shape[0] == 64 and mat.shape[1] == 64
-                    # mat = torch.tensor(padding(mat, t), dtype=torch.float)
-                    if has_label:
-                        label = chrom_label[row * t - 27:row * t + 37, col * t - 27:col * t + 37]
-                        # label = torch.tensor(padding(label, t), dtype=torch.bool)
-                        label = padding(label, 64)
-                    else:
-                        label = None
-                    data = ImageData(
-                        mat, label, d.cell_name, d.chrom_name,
-                        (row * t - 27) * coarse_ds.resolution // t, (col * t - 27) * coarse_ds.resolution // t
-                    )
-                    yield data
-
-
-def generate_stream_image_dataset(trained_model, coarse_ds, finer_scool_path, has_label, chrom_loopnum_dict, graph_indices, coarsened_time=10):
-    gen = image_generator(trained_model, coarse_ds, finer_scool_path, has_label, chrom_loopnum_dict, graph_indices, coarsened_time=coarsened_time)
-    return ImageDatasetIterable(gen)
-
-
-def generate_image_dataset(trained_model, coarse_ds, finer_scool_path, has_label, chrom_loopnum_dict, folder, graph_indices, coarsened_time=10):
-    if os.path.isdir(folder):
-        return ImageDataset(folder)
-    os.makedirs(folder, exist_ok=True)
-    # start_time = time.time()
-    image_id = 0
-    for data in image_generator(trained_model, coarse_ds, finer_scool_path, has_label, chrom_loopnum_dict, graph_indices, coarsened_time=coarsened_time):
-        torch.save(data, os.path.join(folder, f'{image_id}.pt'))
-        image_id += 1
-    # print("--- %s seconds ---" % (time.time() - start_time))
-    return ImageDataset(folder)
 
 
 def write_batch_pred_to_bed(y_pred_batch, y_proba_batch, cell_names, chrom_names, left_starts, right_starts, res, outdir):
@@ -259,10 +164,6 @@ class GnnLoopCaller(object):
                 ), \
                 DataLoader(
                     self.val_set, self.bs, num_workers=LOADER_WORKER, pin_memory=False,
-                    # sampler=RandomSampler(
-                    #     self.val_set, replacement=True,
-                    #     num_samples=100
-                    # )
                 )
 
         self.model, self.optimizer = self.get_loop_calling_settings()

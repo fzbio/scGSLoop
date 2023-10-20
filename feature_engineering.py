@@ -2,11 +2,7 @@ import pandas as pd
 import numpy as np
 import kcounter
 import pyfastx
-import os
-import sys
-import cooler
 from schickit.utils import get_chrom_sizes
-from sklearn.preprocessing import StandardScaler
 
 
 def get_all_k_length(elements, prefix, n, k, all_kmer):

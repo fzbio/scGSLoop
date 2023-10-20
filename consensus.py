@@ -2,7 +2,6 @@
 import glob
 import os
 import cooler
-import sys
 import numpy as np
 from sklearn.preprocessing import minmax_scale
 from predict_eval import get_raw_average_pred_dfs

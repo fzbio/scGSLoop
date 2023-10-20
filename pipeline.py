@@ -4,15 +4,13 @@ import os.path
 from imputation import Imputer
 from torch_geometric import transforms as T
 from nn_data import ScoolDataset
-from nn_data import RemoveSelfLooping, PositionalEncoding, ReadKmerFeatures, ReadMotifFeatures
-from loop_calling import get_split_dataset, GnnLoopCaller, estimate_chrom_loop_num_train
-from torch.utils.data import DataLoader as PlainDataLoader
+from nn_data import RemoveSelfLooping, PositionalEncoding, ReadKmerFeatures, ReadMotifFeatures, get_split_dataset
+from loop_calling import GnnLoopCaller, estimate_chrom_loop_num_train
 import numpy as np
 import torch
-from metrics import slack_f1_evaluate_all
 import random
-from utils import hpc_celltype_parser, get_imputes_scool_paths, get_loop_calling_dataset_paths, remove_datasets
-from configs import DEVICE, DATA_SPLIT_SEED, SEED
+from utils import get_imputes_scool_paths, get_loop_calling_dataset_paths
+from configs import DATA_SPLIT_SEED, SEED
 import sys
 
 
