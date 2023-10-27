@@ -21,43 +21,6 @@ from torchmetrics.classification import BinaryAUROC, BinaryAveragePrecision
 from torch.utils.data import RandomSampler
 
 
-def estimate_chrom_loop_num_train(train_ds, run_name, model_dir, ratio=0.75, estimate_on=100):
-    assert len(train_ds) % len(train_ds.chrom_names) == 0
-    cell_num = len(train_ds) // len(train_ds.chrom_names)
-    estimate_on = estimate_on if estimate_on <= cell_num else cell_num
-    cell_ids = np.random.choice(cell_num, estimate_on, replace=False)
-    chrom_sizes = []
-    loop_nums = []
-    for i, chrom_name in enumerate(train_ds.chrom_names):
-        graph_ids = cell_ids * len(train_ds.chrom_names) + i
-        chrom_size = 0
-        loop_num = 0
-        for id in graph_ids:
-            graph = train_ds[id]
-            chrom_size += graph.num_nodes
-            loop_num += graph.edge_label_index.size(dim=1)
-        loop_nums.append(loop_num / len(graph_ids))
-        chrom_sizes.append(chrom_size / len(graph_ids))
-    X = np.array(chrom_sizes).reshape([-1, 1])
-    y = np.array(loop_nums)
-    reg = LinearRegression()
-    reg.fit(X, y)
-    joblib.dump(reg, os.path.join(model_dir, f'{run_name}.pkl'))
-    chrom_loopnum_dict = {}
-    for i, chrom_name in enumerate(train_ds.chrom_names):
-        chrom_loopnum_dict[chrom_name] = int(ratio * reg.predict(np.array([[train_ds[i].num_nodes]]))[0])
-    return chrom_loopnum_dict
-
-
-def estimate_chrom_loop_num_predict(test_ds, run_name, model_dir, ratio=0.75):
-    assert len(test_ds) % len(test_ds.chrom_names) == 0
-    reg = joblib.load(os.path.join(model_dir, f'{run_name}.pkl'))
-    chrom_loopnum_dict = {}
-    for i, chrom_name in enumerate(test_ds.chrom_names):
-        chrom_loopnum_dict[chrom_name] = int(ratio * reg.predict(np.array([[test_ds[i].num_nodes]]))[0])
-    return chrom_loopnum_dict
-
-
 def write_batch_pred_to_bed(y_pred_batch, y_proba_batch, cell_names, chrom_names, left_starts, right_starts, res, outdir):
     assert len(y_pred_batch) == len(cell_names)
     cell_df_dict = {}

@@ -14,9 +14,9 @@ MOTIF_FEATURE_PATH = f'data/graph_features/mouse/CTCF_mm10.10kb.input.csv'
 KMER_FEATURE_PATH = f'data/graph_features/mouse/mm10.10kb.kmer.csv'
 
 IMPUTE = True
-OUT_IMPUTED_SCOOL_100KB = f'refined_scools/demo_imputed_coarse.scool'
-OUT_IMPUTED_SCOOL_10KB = f'refined_scools/demo_imputed_finer.scool'
-IMPUTATION_DATASET_DIR = 'data/mES/demo_imputation_dataset_no_label'
+OUT_IMPUTED_SCOOL_100KB = f'refined_scools/demo_imputed_coarse.scool'   # Can be None when IMPUTE is False
+OUT_IMPUTED_SCOOL_10KB = f'refined_scools/demo_imputed_finer.scool'     # Can be None when IMPUTE is False
+IMPUTATION_DATASET_DIR = 'data/mES/demo_imputation_dataset_no_label'    # Can be None when IMPUTE is False
 
 GENOME_REGION_FILTER = 'region_filter/mm10_filter_regions.txt'  # Can be None
 

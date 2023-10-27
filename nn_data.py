@@ -12,19 +12,7 @@ import torch
 import copy
 import random
 from positional_encodings.torch_encodings import PositionalEncoding1D, Summer
-from sklearn.preprocessing import MaxAbsScaler
-import joblib
-
-
-class GaussianNoise(object):
-    def __init__(self, std):
-        self.std = std
-
-    def __call__(self, sample):
-        d1 = sample.shape[0]
-        d2 = sample.shape[1]
-        sample = sample + self.std * np.random.randn(d1, d2, 1)
-        return sample
+from sklearn.preprocessing import maxabs_scale
 
 
 def easy_to_device(data, device, attrs_to_remove):
@@ -49,17 +37,13 @@ class PositionalEncoding(BaseTransform):
 
 
 class ReadKmerFeatures(BaseTransform):
-    def __init__(self, kmer_input_path, chroms, is_train_set, scaler_path):
+    def __init__(self, kmer_input_path, chroms):
         self.kmer_path = kmer_input_path
         self.kmer_df = pd.read_csv(self.kmer_path, sep='\t', header=0, index_col=False)
+        self.kmer_df = self.kmer_df[self.kmer_df['chrom'].isin(chroms)]
         feature_mat = self.kmer_df.iloc[:, 3:].to_numpy()
-        if is_train_set:
-            self.scaler = MaxAbsScaler()
-            self.scaler.fit(feature_mat)
-            joblib.dump(self.scaler, scaler_path)
-        else:
-            self.scaler = joblib.load(scaler_path)
-        feature_mat = self.scaler.fit_transform(feature_mat)
+        # Use per-graph scaling here
+        feature_mat = maxabs_scale(feature_mat)
         self.kmer_df.iloc[:, 3:] = feature_mat
         self.desired_chrom_dfs = {}
         for chrom in chroms:
@@ -79,17 +63,12 @@ class ReadKmerFeatures(BaseTransform):
 
 
 class ReadMotifFeatures(BaseTransform):
-    def __init__(self, motif_input_path, chroms, is_train_set, scaler_path):
+    def __init__(self, motif_input_path, chroms):
         self.motif_path = motif_input_path
         self.motif_df = pd.read_csv(self.motif_path, sep='\t', header=0, index_col=False)
+        self.motif_df = self.motif_df[self.motif_df['chrom'].isin(chroms)]
         feature_mat = self.motif_df.iloc[:, 3:].to_numpy()
-        if is_train_set:
-            self.scaler = MaxAbsScaler()
-            self.scaler.fit(feature_mat)
-            joblib.dump(self.scaler, scaler_path)
-        else:
-            self.scaler = joblib.load(scaler_path)
-        feature_mat = self.scaler.fit_transform(feature_mat)
+        feature_mat = maxabs_scale(feature_mat)
         self.motif_df.iloc[:, 3:] = feature_mat
         self.desired_chrom_dfs = {}
         for chrom in chroms:
@@ -118,25 +97,6 @@ class RemoveSelfLooping(BaseTransform):
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}'
-
-
-# def colwise_in(a, b):
-#     """
-#     Source:
-#     https://stackoverflow.com/questions/73524338/pytorch-test-each-row-of-the-first-2d-tensor-also-exist-in-the-second-tensor
-#     """
-#     a, b = a.T, b.T
-#     # dimensions
-#     shape1 = a.shape[0]
-#     shape2 = b.shape[0]
-#     c = a.shape[1]
-#     assert c == b.shape[1], "Tensors must have same number of columns"
-#
-#     a_expand = a.unsqueeze(1).expand(-1, shape2, c)
-#     b_expand = b.unsqueeze(0).expand(shape1, -1, c)
-#     # element-wise equality
-#     mask = (a_expand == b_expand).all(-1).any(-1)
-#     return mask
 
 
 def colwise_in(edge_index, loop_index, num_nodes):

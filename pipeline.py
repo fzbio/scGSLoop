@@ -5,7 +5,7 @@ from imputation import Imputer
 from torch_geometric import transforms as T
 from nn_data import ScoolDataset
 from nn_data import RemoveSelfLooping, PositionalEncoding, ReadKmerFeatures, ReadMotifFeatures, get_split_dataset
-from loop_calling import GnnLoopCaller, estimate_chrom_loop_num_train
+from loop_calling import GnnLoopCaller
 import numpy as np
 import torch
 import random
@@ -106,10 +106,10 @@ if __name__ == '__main__':
         pre_transform=T.Compose([
             RemoveSelfLooping(),
             ReadKmerFeatures(
-                kmer_feature_path, train_chroms, True, os.path.join(model_dir, f'{run_id}_kmer_scaler_calling.pkl')
+                kmer_feature_path, train_chroms
             ),
             ReadMotifFeatures(
-                motif_feature_path, train_chroms, True, os.path.join(model_dir, f'{run_id}_motif_scaler_calling.pkl')
+                motif_feature_path, train_chroms
             ),
             PositionalEncoding()
         ])
@@ -122,10 +122,10 @@ if __name__ == '__main__':
         pre_transform=T.Compose([
             RemoveSelfLooping(),
             ReadKmerFeatures(
-                kmer_feature_path, val_chroms, False, os.path.join(model_dir, f'{run_id}_kmer_scaler_calling.pkl')
+                kmer_feature_path, val_chroms
             ),
             ReadMotifFeatures(
-                motif_feature_path, val_chroms, False, os.path.join(model_dir, f'{run_id}_motif_scaler_calling.pkl')
+                motif_feature_path, val_chroms
             ),
             PositionalEncoding()
         ])
@@ -134,17 +134,3 @@ if __name__ == '__main__':
     assert len(gnn_train_set) > len(gnn_val_set)
     gnn_caller = GnnLoopCaller(run_id, chroms, f'{model_dir}/{run_id}.pt', gnn_train_set.num_features, gnn_train_set, gnn_val_set)
     gnn_caller.train()
-    # gnn_caller.load_model()
-
-    train_chrom_num = 100
-    chrom_loop_num_dict = estimate_chrom_loop_num_train(gnn_caller.train_set, run_id, model_dir)
-    print(chrom_loop_num_dict)
-
-
-
-
-
-
-
-
-    # remove_datasets([loop_calling_train, loop_calling_val])

@@ -44,10 +44,10 @@ def predict_on_other_dataset(training_run_id, chroms, bedpe_dict, model_dir, fin
         pre_transform=T.Compose([
             RemoveSelfLooping(),
             ReadKmerFeatures(
-                kmer_feature_path, chroms, False, os.path.join(model_dir, f'{run_id}_kmer_scaler_calling.pkl')
+                kmer_feature_path, chroms
             ),
             ReadMotifFeatures(
-                motif_feature_path, chroms, False, os.path.join(model_dir, f'{run_id}_motif_scaler_calling.pkl')
+                motif_feature_path, chroms
             ),
             PositionalEncoding()
         ])
@@ -87,13 +87,6 @@ def get_raw_average_pred_dfs(pred_dfs):
     size = df1['proba']
     df2['proba'] = proba * size
     return df2
-
-
-def normalize_dist(df):
-    dist_vec = df['y1'] - df['x1']
-    for dist in dist_vec.unique():
-        df.loc[dist_vec == dist, 'proba'] /= np.mean(df[dist_vec == dist]['proba'])
-    return df
 
 
 def evaluate_average_cells(cell_pred_paths, bedpe_path, resolution, loop_num=None, threshold=None, percentile=None):
