@@ -16,7 +16,7 @@ from sklearn.preprocessing import maxabs_scale
 
 
 def easy_to_device(data, device, attrs_to_remove):
-    attrs = data.keys
+    attrs = data.keys()
     for attr in attrs_to_remove:
         attrs.remove(attr)
     return data.to(device, *attrs, non_blocking=True)
