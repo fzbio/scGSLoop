@@ -40,9 +40,9 @@ def convert_cool_to_scool(cool_dir, scool_path, parse_func):
 
 def aggregate_scool(scool_path, output_cool_path, name_determine_func=None):
     if name_determine_func is None:
-        cell_names = cooler.fileops.list_coolers(scool_path)
+        cell_names = cooler.fileops.list_scool_cells(scool_path)
     else:
-        all_cell_names = cooler.fileops.list_coolers(scool_path)
+        all_cell_names = cooler.fileops.list_scool_cells(scool_path)
         cell_names = []
         for cn in all_cell_names:
             if name_determine_func(cn):
@@ -68,7 +68,7 @@ def select_types_of_cells_from_scool(scool_path, output_path, name_parser):
     """
     name_parser is a function that determines if a cell name is of our desired cell type. It returns a boolean value.
     """
-    cell_names = cooler.fileops.list_coolers(scool_path)
+    cell_names = cooler.fileops.list_scool_cells(scool_path)
     for name in tqdm(cell_names):
         if name_parser(name):
             cool_path = scool_path + '::' + name
