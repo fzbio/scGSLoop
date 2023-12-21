@@ -19,6 +19,10 @@ from imputation import Imputer
 from sklearn.preprocessing import minmax_scale
 from matplotlib import pyplot as plt
 import torch.multiprocessing
+from scipy.sparse import coo_matrix
+from schickit.utils import get_chrom_sizes, get_bin_count
+from tqdm.auto import tqdm
+
 
 # Import user-defined variables from the config file.
 from configs import IMPUTE as do_impute, MODEL_ID as run_id, K, CHROMOSOMES as chroms, MODEL_DIR as model_dir,\
@@ -75,33 +79,46 @@ def visualize_embedding(embedding, centroid, outpath):
     plt.close()
 
 
-def get_raw_average_pred_dfs(pred_dfs):
-    df = pd.concat(pred_dfs)
-    df1 = df.groupby(
-        ['chrom1', 'x1', 'x2', 'chrom2', 'y1', 'y2'], as_index=False
-    ).count()
-    df2 = df.groupby(
-        ['chrom1', 'x1', 'x2', 'chrom2', 'y1', 'y2'], as_index=False
-    ).mean()
-    proba = df2['proba']
-    size = df1['proba']
-    df2['proba'] = proba * size
-    return df2
+def get_raw_average_pred_dfs(pred_dfs, chrom_sizes_path, total, res=10000, sc_loop_threshold=0.5):
+    # This is a version using coo matrix of scipy
+    chrom_matrices = {}
+    chrom_sizes = get_chrom_sizes(chrom_sizes_path)
+    for df in tqdm(pred_dfs, total=total):
+        df = df[df['proba'] > sc_loop_threshold]
+        df.loc[:, ['x1', 'x2', 'y1', 'y2']] = df[['x1', 'x2', 'y1', 'y2']].astype('int')
+        for chrom in df['chrom1'].unique():
+            mat_shape = get_bin_count(chrom_sizes[chrom], res)
+            # Convert the df to a coo matrix
+            chrom_df = df[df['chrom1'] == chrom]
+            chrom_df = chrom_df[['x1', 'x2', 'y1', 'y2', 'proba']]
+            row, col = chrom_df['x1'].to_numpy() // res, chrom_df['y1'].to_numpy() // res
+            data = chrom_df['proba'].to_numpy()
+            mat = coo_matrix((data, (row, col)), shape=(mat_shape, mat_shape))
+            if chrom not in chrom_matrices:
+                chrom_matrices[chrom] = mat
+            else:
+                chrom_matrices[chrom] += mat
+    # Convert the coo matrix back to a df
+    result_dfs = []
+    for chrom in chrom_matrices:
+        mat = chrom_matrices[chrom].tocoo()
+        row, col, data = mat.row, mat.col, mat.data
+        df = pd.DataFrame({'x1': row * res, 'x2': row * res + res, 'y1': col * res, 'y2': col * res + res, 'proba': data})
+        df['chrom1'], df['chrom2'] = chrom, chrom
+        df = df[['chrom1', 'x1', 'x2', 'chrom2', 'y1', 'y2', 'proba']]
+        result_dfs.append(df)
+    return pd.concat(result_dfs)
 
 
-def evaluate_average_cells(cell_pred_paths, bedpe_path, resolution, loop_num=None, threshold=None, percentile=None):
+
+def evaluate_average_cells(cell_pred_paths, bedpe_path, resolution, chrom_sizes_path, loop_num=None, threshold=None, percentile=None, sc_loop_threshold=0.5):
     """
     Evaluate based on the average prediction of a cell type
     cell_pred_paths must be of the same cell type
     """
-    pred_dfs = []
     label_df = read_bedpe_as_df(bedpe_path)
-    for pred_path in cell_pred_paths:
-        pred_dfs.append(pd.read_csv(pred_path, header=0, index_col=False, sep='\t'))
-    pred_dfs = [df[df['proba'] > 0.5] for df in pred_dfs]
-    for df in pred_dfs:
-        df[['x1', 'x2', 'y1', 'y2']] = df[['x1', 'x2', 'y1', 'y2']].astype('int')
-    average_pred = get_raw_average_pred_dfs(pred_dfs)
+    pred_dfs = (pd.read_csv(pred_path, header=0, index_col=False, sep='\t') for pred_path in cell_pred_paths)
+    average_pred = get_raw_average_pred_dfs(pred_dfs, chrom_sizes_path, len(cell_pred_paths), resolution)
     proba_mat = average_pred['proba'].to_numpy()[..., np.newaxis]
     average_pred['proba'] = minmax_scale(proba_mat[:, 0], feature_range=(0, 1))
     # average_pred2 = average_pred_dfs_short_dist(pred_dfs, chrom_size_df, resolution)
@@ -117,7 +134,7 @@ def evaluate_average_cells(cell_pred_paths, bedpe_path, resolution, loop_num=Non
             original_len = len(average_pred)
             average_pred = average_pred[average_pred['proba'] >= threshold]
             new_len = len(average_pred)
-            print(new_len / original_len)
+            # print(new_len / original_len)
     candidate_df = average_pred.drop('proba', axis=1)
     # print(len(candidate_df))
     return slack_metrics_df(label_df, candidate_df, resolution) + (len(candidate_df),) + (average_pred,)

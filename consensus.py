@@ -9,14 +9,9 @@ import pandas as pd
 import argparse
 
 
-def average_cells(cell_pred_paths, loop_num=None, threshold=None, percentile=None):
-    pred_dfs = []
-    for pred_path in cell_pred_paths:
-        pred_dfs.append(pd.read_csv(pred_path, header=0, index_col=False, sep='\t'))
-    pred_dfs = [df[df['proba'] > 0.5] for df in pred_dfs]
-    for df in pred_dfs:
-        df[['x1', 'x2', 'y1', 'y2']] = df[['x1', 'x2', 'y1', 'y2']].astype('int')
-    average_pred = get_raw_average_pred_dfs(pred_dfs)
+def average_cells(cell_pred_paths, chrom_sizes_path, resolution=10000, loop_num=None, threshold=None, percentile=None):
+    pred_dfs = (pd.read_csv(pred_path, header=0, index_col=False, sep='\t') for pred_path in cell_pred_paths)
+    average_pred = get_raw_average_pred_dfs(pred_dfs, chrom_sizes_path, len(cell_pred_paths), resolution)
     proba_mat = average_pred['proba'].to_numpy()[..., np.newaxis]
     average_pred['proba'] = minmax_scale(proba_mat[:, 0], feature_range=(0, 1))
     if threshold is not None:
@@ -56,22 +51,24 @@ if __name__ == '__main__':
     parser.add_argument("raw_scool_path", type=str, help="Path to the raw 10kb scool file")
     parser.add_argument("pred_dir", type=str, help="Path to the directory storing single-cell level predictions")
     parser.add_argument("out_path", type=str, help="Path to the output file path")
+    parser.add_argument("assembly_size", type=str, help="Path to the assembly sizes file (e.g. hg38.sizes)")
 
     args = parser.parse_args()
 
     raw_scool_path = args.raw_scool_path
     pred_dir = args.pred_dir
     out_path = args.out_path
+    chrom_sizes_path = args.assembly_size
 
     chrom_size_df = get_chrom_df(raw_scool_path)
     if args.num_loop:
         result_df = average_cells(
-            glob.glob(os.path.join(pred_dir, '*.csv')),
+            glob.glob(os.path.join(pred_dir, '*.csv')), chrom_sizes_path,
             loop_num=args.num_loop
         )
     elif args.percentile:
         result_df = average_cells(
-            glob.glob(os.path.join(pred_dir, '*.csv')),
+            glob.glob(os.path.join(pred_dir, '*.csv')), chrom_sizes_path,
             percentile=args.percentile
         )
     else:

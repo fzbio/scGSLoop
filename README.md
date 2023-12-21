@@ -107,12 +107,13 @@ After the single-cell loops are detected, you can use them to generate the conse
 
 usage: 
 ```
-python consensus.py [-h] [-p PERCENTILE | -n NUM_LOOP] raw_scool_path pred_dir out_path
+python consensus.py [-h] [-p PERCENTILE | -n NUM_LOOP] raw_scool_path pred_dir out_path assembly_size
 
 Arguments:
    raw_scool_path:   Path to the raw 10kb .scool file
    pred_dir:         Path to the single-cell predictions
    out_path:         Path to output the consensus list
+   assembly_size:    Path to the assembly size file (e.g. hg19.sizes)
   
 Options:
 The following two options are mutually exclusive. Choose one of them to set the threshold 
