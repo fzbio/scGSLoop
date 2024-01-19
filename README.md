@@ -147,3 +147,22 @@ usage:
 python hub_discover.py
 ```
  
+
+## Citation
+
+If you find scGSLoop useful in your research, please cite our paper:
+
+F. Wang, H. Alinejad-Rokny, J. Lin, T. Gao, X. Chen, Z. Zheng, L. Meng, X. Li, K.-C. Wong, A Lightweight Framework For Chromatin Loop Detection at the Single-Cell Level. Adv. Sci. 2023, 10, 2303502. https://doi.org/10.1002/advs.202303502
+
+```text
+@article{wangLightweightFrameworkChromatin2023,
+  title = {A Lightweight Framework for Chromatin Loop Detection at the Single-Cell Level},
+  author = {Wang, Fuzhou and {Alinejad-Rokny}, Hamid and Lin, Jiecong and Gao, Tingxiao and Chen, Xingjian and Zheng, Zetian and Meng, Lingkuan and Li, Xiangtao and Wong, Ka-Chun},
+  year = {2023},
+  journal = {Advanced Science},
+  volume = {10},
+  number = {33},
+  pages = {2303502},
+  doi = {10.1002/advs.202303502}
+}
+```
