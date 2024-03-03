@@ -3,6 +3,7 @@ import numpy as np
 import kcounter
 import pyfastx
 from schickit.utils import get_chrom_sizes
+import argparse
 
 
 def get_all_k_length(elements, prefix, n, k, all_kmer):
@@ -81,8 +82,22 @@ def create_kmer_input_file(chrom_size_path, assembly_path, out_csv_path, chroms,
     result_df.to_csv(out_csv_path, sep='\t', header=True, index=False)
 
 
-def create_motif_input_file(chrom_size_path, motif_bed_path, out_csv_path, chroms, resolution):
-    motif_bed_df = pd.read_csv(motif_bed_path, sep='\t', header=0, index_col=False)
+def convert_fimo_df(fimo_df):
+    fimo_df = fimo_df.drop(columns=['motif_alt_id'])
+    fimo_df = fimo_df.rename(columns={
+        'motif_id': 'name', 'sequence_name': 'seqnames',
+        'start': 'start', 'stop': 'end', 'p-value': 'pvalue', 'q-value': 'qvalue', 'matched_sequence': 'sequence'
+    })
+    fimo_df['width'] = fimo_df['end'] - fimo_df['start'] + 1
+    fimo_df = fimo_df[fimo_df['pvalue'] <= 1e-6]
+    fimo_df = fimo_df.sort_values(by=['seqnames', 'start'])
+    return fimo_df
+
+
+def create_motif_input_file(chrom_size_path, motif_bed_path, out_csv_path, chroms, resolution, fimo_format):
+    motif_bed_df = pd.read_csv(motif_bed_path, sep='\t', header=0, index_col=False, comment='#')
+    if fimo_format:
+        motif_bed_df = convert_fimo_df(motif_bed_df)
     chrom_sizes = get_chrom_sizes(chrom_size_path)
     bins = create_bin_df_from_chrom_sizes(chrom_sizes, chroms, resolution)
     motif_bed_df['start'] = motif_bed_df['start'] // resolution * resolution
@@ -100,35 +115,66 @@ def create_motif_input_file(chrom_size_path, motif_bed_path, out_csv_path, chrom
     merged.to_csv(out_csv_path, sep='\t', header=True, index=False)
 
 
+def get_chrom_list(chrom_size_path):
+    chrom_sizes = get_chrom_sizes(chrom_size_path)
+    return list(chrom_sizes.keys())
 
+
+# if __name__ == '__main__':
+#
+#     create_kmer_input_file(
+#         'external_annotations/mm9.chrom.sizes',
+#         'data/graph_features/mouse/mm9.fa',
+#         'data/graph_features/mouse/mm9.10kb.kmer.csv',
+#         ['chr' + str(i) for i in range(1, 20)],
+#         10000
+#     )
+#     create_motif_input_file(
+#         'external_annotations/mm9.chrom.sizes',
+#         'data/graph_features/mouse/CTCF_mm9.bed',
+#         'data/graph_features/mouse/CTCF_mm9.10kb.input.csv',
+#         ['chr' + str(i) for i in range(1, 20)], 10000
+#     )
+#
+#     create_kmer_input_file(
+#         'external_annotations/hg38.chrom.sizes',
+#         'data/graph_features/human/hg38.fa',
+#         'data/graph_features/human/hg38.10kb.kmer.csv',
+#         ['chr' + str(i) for i in range(1, 23)],
+#         10000
+#     )
+#     create_motif_input_file(
+#         'external_annotations/hg38.chrom.sizes',
+#         'data/graph_features/human/CTCF_hg38.bed',
+#         'data/graph_features/human/CTCF_hg38.10kb.input.csv',
+#         ['chr' + str(i) for i in range(1, 23)], 10000
+#     )
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Create kmer and motif input files for the model')
+    parser.add_argument('chrom_size_path', type=str, help='Path to the chrom size file (e.g., hg19.sizes). Make sure the file only contains the desired chromosomes.')
+    parser.add_argument('assembly_path', type=str, help='Path to the assembly file (e.g., hg19.fa)')
+    parser.add_argument('motif_tsv_path', type=str, help='The .tsv output of a FIMO run (e.g., fimo.tsv)')
+    parser.add_argument('out_kmer_path', type=str, help='Path to the output kmer feature file')
+    parser.add_argument('out_motif_path', type=str, help='Path to the output motif feature file')
+    args = parser.parse_args()
+
+    chroms = get_chrom_list(args.chrom_size_path)
 
     create_kmer_input_file(
-        'external_annotations/mm9.chrom.sizes',
-        'data/graph_features/mouse/mm9.fa',
-        'data/graph_features/mouse/mm9.10kb.kmer.csv',
-        ['chr' + str(i) for i in range(1, 20)],
+        args.chrom_size_path,
+        args.assembly_path,
+        args.out_kmer_path,
+        chroms,
         10000
-    )
-    create_motif_input_file(
-        'external_annotations/mm9.chrom.sizes',
-        'data/graph_features/mouse/CTCF_mm9.bed',
-        'data/graph_features/mouse/CTCF_mm9.10kb.input.csv',
-        ['chr' + str(i) for i in range(1, 20)], 10000
     )
 
-    create_kmer_input_file(
-        'external_annotations/hg38.chrom.sizes',
-        'data/graph_features/human/hg38.fa',
-        'data/graph_features/human/hg38.10kb.kmer.csv',
-        ['chr' + str(i) for i in range(1, 23)],
-        10000
-    )
     create_motif_input_file(
-        'external_annotations/hg38.chrom.sizes',
-        'data/graph_features/human/CTCF_hg38.bed',
-        'data/graph_features/human/CTCF_hg38.10kb.input.csv',
-        ['chr' + str(i) for i in range(1, 23)], 10000
+        args.chrom_size_path,
+        args.motif_tsv_path,
+        args.out_motif_path,
+        chroms,
+        10000, True
     )
+    print('Done')
