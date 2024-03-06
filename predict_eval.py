@@ -162,9 +162,18 @@ def random_select_cells_from_ds(ds, chrom_names, desired_cell_num, seed):
     return small_ds
 
 
+def remove_existing_scool(scool_path):
+    if os.path.exists(scool_path):
+        os.remove(scool_path)
+
+
 # Predicting on the another schic dataset
 if __name__ == '__main__':
-    with tempfile.TemporaryDirectory() as graph_dir:
+    if imputed_finer_scool is not None:
+        assert imputed_coarse_scool is not None
+        remove_existing_scool(imputed_coarse_scool)
+        remove_existing_scool(imputed_finer_scool)
+    with tempfile.TemporaryDirectory() as graph_dir, tempfile.TemporaryDirectory() as dataset_root:
         impute_model_path = f'{model_dir}/{run_id}_impute.pt'
         gnn_path = f'{model_dir}/{run_id}.pt'
         graph_dataset_path = f'{graph_dir}/{run_id}_graph_transfer'
@@ -176,7 +185,7 @@ if __name__ == '__main__':
         bedpe_dict = {'PLACEHOLDER': placeholder_path}
         if do_impute:
             raw_coarse_dataset = ScoolDataset(
-                imputation_dataset_path,
+                os.path.join(dataset_root, 'imputation_dataset'),
                 raw_coarse_scool,
                 chroms, 100000, bedpe_dict,
                 name_parser,
@@ -201,5 +210,4 @@ if __name__ == '__main__':
             processor.remove_invalid_loops_in_dir(
                 pred_out_dir, pred_out_dir + '_filtered', proba_threshold=THRESHOLD
             )
-        remove_datasets([graph_dataset_path])
 

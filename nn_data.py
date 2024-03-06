@@ -42,7 +42,8 @@ class PositionalEncoding(BaseTransform):
 class ReadKmerFeatures(BaseTransform):
     def __init__(self, kmer_input_path, chroms):
         self.kmer_path = kmer_input_path
-        self.kmer_df = pd.read_csv(self.kmer_path, sep='\t', header=0, index_col=False)
+        self.kmer_df = pd.read_csv(self.kmer_path, sep='\t', header=0, index_col=False,
+                                   dtype={'chrom': 'str', 'start': 'int', 'end': 'int'})
         self.kmer_df = self.kmer_df[self.kmer_df['chrom'].isin(chroms)]
         feature_mat = self.kmer_df.iloc[:, 3:].to_numpy()
         # Use per-graph scaling here
@@ -68,7 +69,8 @@ class ReadKmerFeatures(BaseTransform):
 class ReadMotifFeatures(BaseTransform):
     def __init__(self, motif_input_path, chroms):
         self.motif_path = motif_input_path
-        self.motif_df = pd.read_csv(self.motif_path, sep='\t', header=0, index_col=False)
+        self.motif_df = pd.read_csv(self.motif_path, sep='\t', header=0, index_col=False,
+                                    dtype={'chrom': 'str', 'start': 'int', 'end': 'int'})
         self.motif_df = self.motif_df[self.motif_df['chrom'].isin(chroms)]
         feature_mat = self.motif_df.iloc[:, 3:].to_numpy()
         feature_mat = maxabs_scale(feature_mat)
