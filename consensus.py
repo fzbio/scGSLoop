@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     # Add mutually exclusive options, each followed by a numerical value
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("-p", "--percentile", type=float, help="Output the consensus loops with probability > percentile")
+    group.add_argument("-p", "--percentile", dest='percentile', type=float, help="Output the consensus loops with probability > percentile")
     group.add_argument("-n", "--num-loop", dest='num_loop', type=int, help="Output a fixed number of loops")
 
     # Add positional arguments
@@ -61,12 +61,12 @@ if __name__ == '__main__':
     chrom_sizes_path = args.assembly_size
 
     chrom_size_df = get_chrom_df(raw_scool_path)
-    if args.num_loop:
+    if args.num_loop is not None:
         result_df = average_cells(
             glob.glob(os.path.join(pred_dir, '*.csv')), chrom_sizes_path,
             loop_num=args.num_loop
         )
-    elif args.percentile:
+    elif args.percentile is not None:
         result_df = average_cells(
             glob.glob(os.path.join(pred_dir, '*.csv')), chrom_sizes_path,
             percentile=args.percentile
