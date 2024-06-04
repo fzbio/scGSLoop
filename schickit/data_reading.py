@@ -7,6 +7,7 @@ import itertools
 from collections import defaultdict
 from .utils import get_bin_count, grouplist
 from .matrix_manipulation import weighted_hic_to_unweighted_graph
+import re
 
 
 def check_chrom_in_order(chrom_df, chrom_names):
@@ -151,7 +152,7 @@ def parsebed(chiafile, res=10000, lower=0, upper=5000000, valid_threshold=1):
             # all chromosomes including X and Y
             if (b - a > lower) and (b - a < upper) and 'M' not in s[0]:
                 # always has prefix "chr", avoid potential bugs
-                chrom = 'chr' + s[0].lstrip('chr')
+                chrom = 'chr' + re.compile('^chr').sub('', s[0])
                 coords[chrom].append((a, b))
     valid_coords = dict()
     for c in coords:

@@ -18,6 +18,7 @@ from nn_data import easy_to_device
 import tempfile
 from nn_data import RemoveSelfLooping
 from schickit.utils import coarsen_scool
+import re
 from configs import DEVICE
 
 # torch.manual_seed(SEED)
@@ -194,7 +195,7 @@ class Imputer(object):
                                      scool_of_dataset, bins_selector, temp_dir)
             print('Done')
             print('Creating .scool from imputed coolers...')
-            convert_cool_to_scool(temp_dir, out_finer_scool, lambda s: s.rstrip('.cool'))
+            convert_cool_to_scool(temp_dir, out_finer_scool, lambda x: re.compile(r'\.cool$').sub('', x.split('/')[-1]))
         coarsen_scool(out_finer_scool, out_coarse_scool)
 
 
