@@ -18,7 +18,7 @@ Source code for "A lightweight framework for chromatin loop detection at the sin
     conda activate scloop
     ```
 
-3. **Download the five folders (`models`, `data`, `preds`, `refined_scools`, `region_filter`) from [scGSLoop assets](https://portland-my.sharepoint.com/:f:/g/personal/fuzhowang2-c_my_cityu_edu_hk/EurHwCqLAKJGsX7HVfgr6rUBE2ETdY5EmE0myo_oJEu5eg?e=YM5hdc), and copy them to the project directory.**
+3. **Download the five folders (`models`, `data`, `preds`, `refined_scools`, `region_filter`) from [scGSLoop assets](https://drive.google.com/drive/folders/1_RR4aK1XNoMzDYUMCXVQiDSDQZDSR3dC?usp=sharing), and copy them to the project directory.**
 
 4. Install PyTorch >= 1.8.0 according to its official [documentation](https://pytorch.org/get-started/previous-versions/). We recommend using [PyTorch 1.8.*](https://pytorch.org/get-started/previous-versions/#linux-and-windows-23) for best compatibility.
 
